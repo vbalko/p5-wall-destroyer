@@ -2,11 +2,14 @@ let paddle, ball;
 let bricks = [];
 let gradient;
 let bokeh = [];
+let gameStarted = false;
+let gameOver = false;
 
 function setup() {
   createCanvas(800, 600);
 
   gradient = generateGradient();
+  gameStarted = false;
 
   for (let i = 0; i < 100; i++) {
     bokeh.push({
@@ -58,35 +61,84 @@ function generateBricks() {
   let brickHeight = 30;
 
   for (let r = 0; r < rows; r++) {
-      for (let i = 0; i < bricksPerRow; i++) {
-          let brick = new Brick(i * brickWidth, r * (brickHeight + 10) + 50, brickWidth - 5, brickHeight);
-          bricks.push(brick);
+    for (let i = 0; i < bricksPerRow; i++) {
+      // Randomly decide whether to place a brick here
+      if (random() < 0.5) {
+        let brick;
+        if (random() < 0.1) { // 10% chance to create a special brick
+          let category = floor(random(1, 4)); // Randomly assign a category between 1 and 3
+          brick = new SpecialBrick(i * brickWidth, r * (brickHeight + 10) + 50, brickWidth - 5, brickHeight, category);
+        } else {
+          let brickColor = color(map(i, 0, bricksPerRow, 0, 255), map(r, 0, rows, 0, 255), 150);
+          brick = new Brick(i * brickWidth, r * (brickHeight + 10) + 50, brickWidth - 5, brickHeight, brickColor);
+        }
+        bricks.push(brick);
       }
+    }
   }
 }
 
+function SpecialBrick(x, y, w, h, category) {
+  Brick.call(this, x, y, w, h);
+  this.category = category;
 
-function Brick(x, y, w, h) {
+  // Change the color and symbol based on the category
+  switch (this.category) {
+    case 1:
+      this.color = color(255, 0, 0); // Red for category 1
+      this.symbol = "A"; // Symbol A for category 1
+      break;
+    case 2:
+      this.color = color(0, 255, 0); // Green for category 2
+      this.symbol = "B"; // Symbol B for category 2
+      break;
+    case 3:
+      this.color = color(0, 0, 255); // Blue for category 3
+      this.symbol = "C"; // Symbol C for category 3
+      break;
+    default:
+      this.color = color(255, 255, 255); // White for any other category
+      this.symbol = "?"; // Symbol ? for any other category
+      break;
+  }
+}
+
+SpecialBrick.prototype = Object.create(Brick.prototype);
+
+SpecialBrick.prototype.display = function() {
+  fill(this.color);
+  rect(this.x, this.y, this.w, this.h);
+  fill(255); // White text
+  textSize(20); // Set the text size
+  textAlign(CENTER, CENTER);
+  text(this.symbol, this.x + this.w / 2, this.y + this.h / 2);
+}
+
+
+
+
+
+function Brick(x, y, w, h, color) {
   this.x = x;
   this.y = y;
   this.w = w;
   this.h = h;
-  this.color = color(random(100, 255), random(100, 255), random(100, 255));
-  this.alpha = 255; // Add an alpha channel for fading
+  this.color = color;
+  this.hit = false;
+  this.hitTime = 0;
+  this.alpha = 255;
 
   this.display = function () {
-      fill(this.color.levels[0], this.color.levels[1], this.color.levels[2], this.alpha);
-      rect(this.x, this.y, this.w, this.h);
+    fill(red(this.color), green(this.color), blue(this.color), this.alpha);
+    rect(this.x, this.y, this.w, this.h);
   }
 
-  this.fade = function() {
-      if (this.alpha > 0) {
-          this.alpha -= 5; // Adjust this value to change the speed of fading
-      }
+  this.fade = function () {
+    if (this.hit && this.alpha > 0) {
+      this.alpha -= 5;
+    }
   }
 }
-
-
 
 
 function draw() {
@@ -119,20 +171,59 @@ function draw() {
   paddle.display();
   paddle.update();
 
-  ball.display();
-  ball.update();
+
 
   for (let i = 0; i < bricks.length; i++) {
-    for (let i = 0; i < bricks.length; i++) {
-      bricks[i].display();
-      bricks[i].fade();
-  }
+    bricks[i].display();
+    bricks[i].fade();
     ball.collide(bricks[i]);
 
-    if (bricks[i].hit && millis() - bricks[i].hitTime > 1000) {
+    if (bricks[i].alpha <= 0) {
       bricks.splice(i, 1);
       i--;
     }
+  }
+
+  ball.display();
+  ball.update();
+
+  // End game if ball hits bottom of canvas
+  if (ball.y + ball.radius > height) {
+    gameOver = true;
+    noLoop();
+  }
+
+  // If the game is over, draw the game over text
+  if (gameOver) {
+    textSize(32);
+    fill(255);
+    textFont('Georgia');
+    text('Game Over', width / 2, height / 2);
+    text('Press R to restart', width / 2, height / 2 + 50);
+  }
+
+}
+
+function resetGame() {
+  // Reset all game variables and states
+  ball = new Ball(paddle);
+  generateBricks();
+  gameOver = false;
+  gameStarted = false;
+}
+
+function keyPressed() {
+  if (key === ' ') {
+    gameStarted = true;
+    // Calculate a random angle between -45 and 45 degrees
+    let angle = random(-45, 45);
+
+    // Convert the angle to radians and create a new direction vector from it
+    ball.direction = p5.Vector.fromAngle(radians(angle));
+  }
+  if (gameOver && key === 'r' || key === 'R') {
+    resetGame();
+    loop(); // Start the draw loop again
   }
 }
 
@@ -178,79 +269,59 @@ function Paddle() {
 
 
 function Ball(paddle) {
-  this.diameter = 15;
+  this.diameter = 20;
   this.radius = this.diameter / 2;
   this.x = width / 2;
   this.y = height - paddle.h - this.radius - 5;
-  this.speed = 5;
+  this.speed = 8;
   this.direction = createVector(0, -1);
-  this.gravity = 0.0001;
 
   this.display = function () {
-    stroke(0);
-    fill(255);
     ellipse(this.x, this.y, this.diameter, this.diameter);
-  };
-
-  this.update = function() {
-    this.x += this.direction.x * this.speed;
-    this.y += this.direction.y * this.speed;
-  
-    if (this.x < this.radius || this.x > width - this.radius) {
-      this.direction.x *= -1;
-    }
-  
-    if (this.y < this.radius) {
-      this.direction.y *= -1;
-    }
-  
-    if (
-      this.y + this.radius >= paddle.y &&
-      this.y - this.radius <= paddle.y + paddle.h &&
-      this.x >= paddle.x &&
-      this.x <= paddle.x + paddle.w
-    ) {
-      let hitLocation = (this.x - paddle.x) / paddle.w;
-      let angle = map(hitLocation, 0, 1, 45, -45);
-      this.direction = p5.Vector.fromAngle(radians(angle));
-    }
-    
-    
-  
-    for (let i = 0; i < bricks.length; i++) {
-      if (this.collide(bricks[i])) {
-        break;
-      }
-    }
-  
-    this.direction.y += this.gravity;
   }
-  
 
-  this.collide = function (brick) {
-    if (
-      brick &&
-      this.x + this.radius > brick.x &&
-      this.x - this.radius < brick.x + brick.w &&
-      this.y + this.radius > brick.y &&
-      this.y - this.radius < brick.y + brick.h
-    ) {
-      let hitSide = this.x < brick.x + brick.w / 2 ? "left" : "right";
-      let hitTopOrBottom = this.y < brick.y + brick.h / 2 ? "top" : "bottom";
+  this.update = function () {
+    if (gameStarted) {
+      this.x += this.direction.x * this.speed;
+      this.y += this.direction.y * this.speed;
 
-      brick.hit = true;
-
-      if (
-        (hitSide === "left" && this.direction.x > 0) ||
-        (hitSide === "right" && this.direction.x < 0)
-      ) {
+      if (this.x < this.radius || this.x > width - this.radius) {
         this.direction.x *= -1;
       }
 
-      if (
-        (hitTopOrBottom === "top" && this.direction.y > 0) ||
-        (hitTopOrBottom === "bottom" && this.direction.y < 0)
-      ) {
+      if (this.y < this.radius) {
+        this.direction.y *= -1;
+      }
+
+      // Check for collision with the paddle
+      if (this.y + this.radius >= paddle.y && this.x >= paddle.x && this.x <= paddle.x + paddle.w) {
+        let hitLocation = (this.x - paddle.x) / paddle.w;
+        let angle = map(hitLocation, 0, 1, 45, 135);
+        // Convert the angle to radians and create a new direction vector from it
+        this.direction = p5.Vector.fromAngle(radians(angle - 90));
+        this.direction.y = abs(this.direction.y) * -1; // Ensure the ball always bounces upwards
+      }
+
+      for (let i = 0; i < bricks.length; i++) {
+        if (this.collide(bricks[i])) {
+          break;
+        }
+      }
+    } else {
+      this.stickToPaddle(paddle);
+    }
+  }
+
+  this.collide = function (brick) {
+    if (brick && this.x > brick.x && this.x < brick.x + brick.w && this.y - this.radius < brick.y + brick.h) {
+      let hitSide = this.x < brick.x + brick.w / 2 ? "left" : "right";
+      let hitTopOrBottom = this.y < brick.y + brick.h / 2 ? "top" : "bottom";
+
+      if (hitSide === "left" && this.direction.x > 0 || hitSide === "right" && this.direction.x < 0) {
+        this.direction.x *= -1;
+      }
+
+      if (hitTopOrBottom === "top" && this.direction.y > 0 || hitTopOrBottom === "bottom" && this.direction.y < 0) {
         this.direction.y *= -1;
       }
 
@@ -259,5 +330,11 @@ function Ball(paddle) {
     }
 
     return false;
-  };
+  }
+
+  this.stickToPaddle = function (paddle) {
+    this.x = paddle.x + paddle.w / 2;
+    this.y = paddle.y - this.radius;
+  }
+
 }
