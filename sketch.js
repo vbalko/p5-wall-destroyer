@@ -1,14 +1,34 @@
 let paddle, ball;
 let bricks = [];
 
+
+let gradient;
+let bokeh = [];
+
 function setup() {
     createCanvas(800, 600);
+    gradient = createGraphics(800, 600);
+    for (let i = 0; i <= height; i++) {
+        let inter = map(i, 0, height, 0, 1);
+        let c = lerpColor(color(255, 160, 0), color(0, 192, 255), inter);
+        gradient.stroke(c);
+        gradient.line(0, i, width, i);
+    }
+
+    for (let i = 0; i < 100; i++) {
+        bokeh.push({
+            x: random(width),
+            y: random(height),
+            size: random(1, 5)
+        });
+    }
 
     paddle = new Paddle();
     ball = new Ball(paddle);
 
     generateBricks();
 }
+
 function generateBricks() {
     bricks = [];
     let rows = 5;
@@ -61,8 +81,14 @@ function Brick(x, y, w, h, c) {
 
 
 function draw() {
-    background(0);
-    frameRate(60); // Set the frame rate to 60 FPS
+    background(gradient.get());
+
+    for (let i = 0; i < bokeh.length; i++) {
+        let b = bokeh[i];
+        noStroke();
+        fill(255, 255, 255, 50);
+        ellipse(b.x, b.y, b.size, b.size);
+    }
 
     paddle.display();
     paddle.update();
@@ -91,6 +117,7 @@ function Paddle() {
     this.speed = 8;
 
     this.display = function () {
+        stroke(0); // Add this line
         rect(this.x, this.y, this.w, this.h);
     }
 
@@ -112,7 +139,8 @@ function Ball(paddle) {
     this.gravity = 0.0001; // Decrease the gravity
 
     this.display = function() {
-      ellipse(this.x, this.y, this.diameter, this.diameter);
+        stroke(0); // Add this line
+        ellipse(this.x, this.y, this.diameter, this.diameter);
     }
 
     this.update = function() {
