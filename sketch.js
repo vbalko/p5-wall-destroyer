@@ -79,8 +79,6 @@ function generateBricks() {
 }
 
 function SpecialBrick(x, y, w, h, category) {
-  Brick.call(this, x, y, w, h);
-  this.category = category;
 
   // Change the color and symbol based on the category
   switch (this.category) {
@@ -101,6 +99,9 @@ function SpecialBrick(x, y, w, h, category) {
       this.symbol = "?"; // Symbol ? for any other category
       break;
   }
+
+  Brick.call(this, x, y, w, h, this.color);
+  this.category = category;
 }
 
 SpecialBrick.prototype = Object.create(Brick.prototype);
@@ -113,10 +114,6 @@ SpecialBrick.prototype.display = function() {
   textAlign(CENTER, CENTER);
   text(this.symbol, this.x + this.w / 2, this.y + this.h / 2);
 }
-
-
-
-
 
 function Brick(x, y, w, h, color) {
   this.x = x;
