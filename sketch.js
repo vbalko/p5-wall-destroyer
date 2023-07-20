@@ -35,6 +35,7 @@ function Brick(x, y, w, h, c) {
     this.c = c;
     this.alpha = 255; // Add an alpha value for transparency
     this.hit = false; // Add a flag to indicate whether the brick has been hit
+    this.hitTime = null;  // Add this line
 
     this.display = function () {
         if (this.hit && this.alpha > 0) {
@@ -46,10 +47,15 @@ function Brick(x, y, w, h, c) {
 
     this.fade = function() {
         if (this.hit) {
-            // Decrease the alpha value based on the frame rate
-            this.alpha -= (255 / 60); // 60 is the frame rate
+            if (this.hitTime === null) {
+                this.hitTime = millis();
+            }
+            let elapsedTime = millis() - this.hitTime;
+            this.alpha = map(elapsedTime, 0, 1000, 255, 0);
         }
     }
+    
+    
     
 }
 
@@ -68,12 +74,13 @@ function draw() {
         bricks[i].display();
         bricks[i].fade(); // Call the fade function for each brick
         ball.collide(bricks[i]);
-
+    
         if (bricks[i].alpha <= 0) { // Remove the brick when its alpha value is 0
             bricks.splice(i, 1);
             i--;
         }
     }
+    
 }
 
 function Paddle() { 
