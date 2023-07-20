@@ -37,20 +37,26 @@ function Brick(x, y, w, h, c) {
     this.hit = false; // Add a flag to indicate whether the brick has been hit
 
     this.display = function () {
-        fill(red(this.c), green(this.c), blue(this.c), this.alpha); // Use the alpha value in the fill function
+        if (this.hit && this.alpha > 0) {
+            this.alpha -= 5; // Decrease the alpha value when the brick is hit
+        }
+        fill(red(this.c), green(this.c), blue(this.c), this.alpha);
         rect(this.x, this.y, this.w, this.h);
     }
 
     this.fade = function() {
         if (this.hit) {
-            this.alpha -= 5; // Decrease the alpha value when the brick is hit
+            // Decrease the alpha value based on the frame rate
+            this.alpha -= (255 / 60); // 60 is the frame rate
         }
     }
+    
 }
 
 
 function draw() {
     background(0);
+    frameRate(60); // Set the frame rate to 60 FPS
 
     paddle.display();
     paddle.update();
