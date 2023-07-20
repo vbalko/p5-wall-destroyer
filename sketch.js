@@ -53,67 +53,40 @@ function generateGradient() {
 function generateBricks() {
   bricks = [];
   let rows = 5;
-  let bricksPerRow = 20;
+  let bricksPerRow = 10;
   let brickWidth = width / bricksPerRow;
-  let brickHeight = 15;
-
-  let color1 = color(255, 160, 0);
-  let color2 = color(0, 192, 255);
+  let brickHeight = 30;
 
   for (let r = 0; r < rows; r++) {
-    let inter = map(r, 0, rows - 1, 0, 1);
-    let brickColor = lerpColor(color1, color2, inter);
-    for (let i = 0; i < bricksPerRow; i++) {
-      let brick = new Brick(
-        i * brickWidth,
-        r * (brickHeight + 10) + 50,
-        brickWidth - 2,
-        brickHeight,
-        brickColor
-      );
-      bricks.push(brick);
-    }
+      for (let i = 0; i < bricksPerRow; i++) {
+          let brick = new Brick(i * brickWidth, r * (brickHeight + 10) + 50, brickWidth - 5, brickHeight);
+          bricks.push(brick);
+      }
   }
 }
 
-function Brick(x, y, w, h, c) {
+
+function Brick(x, y, w, h) {
   this.x = x;
   this.y = y;
   this.w = w;
   this.h = h;
-  this.c = c;
-  this.alpha = 255;
-  this.hit = false;
-  this.hitTime = null;
-  this.sizeOffset = random(-5, 5); // Adjusted range for size variation
-  this.roundnessOffset = random(1, 5); // Adjusted roundness variation
-  this.growthRate = random(0.001, 0.01); // Randomize growth rate
+  this.color = color(random(100, 255), random(100, 255), random(100, 255));
+  this.alpha = 255; // Add an alpha channel for fading
 
   this.display = function () {
-    if (this.hit && this.alpha > 0) {
-      this.alpha -= 5;
-    }
-
-    let size = this.w + sin(millis() * this.growthRate) * this.sizeOffset; // Vary width
-    let roundness = this.h + sin(millis() * this.growthRate) * this.roundnessOffset; // Vary corner roundness
-
-    fill(this.c);
-    rectMode(CENTER);
-    rect(this.x, this.y, size, size, roundness);
+      fill(this.color.levels[0], this.color.levels[1], this.color.levels[2], this.alpha);
+      rect(this.x, this.y, this.w, this.h);
   }
 
-
-
-  this.fade = function () {
-    if (this.hit) {
-      if (this.hitTime === null) {
-        this.hitTime = millis();
+  this.fade = function() {
+      if (this.alpha > 0) {
+          this.alpha -= 5; // Adjust this value to change the speed of fading
       }
-      let elapsedTime = millis() - this.hitTime;
-      this.alpha = map(elapsedTime, 0, 1000, 255, 0);
-    }
-  };
+  }
 }
+
+
 
 
 function draw() {
@@ -150,8 +123,10 @@ function draw() {
   ball.update();
 
   for (let i = 0; i < bricks.length; i++) {
-    bricks[i].display();
-    bricks[i].fade();
+    for (let i = 0; i < bricks.length; i++) {
+      bricks[i].display();
+      bricks[i].fade();
+  }
     ball.collide(bricks[i]);
 
     if (bricks[i].hit && millis() - bricks[i].hitTime > 1000) {
@@ -217,36 +192,40 @@ function Ball(paddle) {
     ellipse(this.x, this.y, this.diameter, this.diameter);
   };
 
-  this.update = function () {
+  this.update = function() {
     this.x += this.direction.x * this.speed;
     this.y += this.direction.y * this.speed;
-
+  
     if (this.x < this.radius || this.x > width - this.radius) {
       this.direction.x *= -1;
     }
-
+  
     if (this.y < this.radius) {
       this.direction.y *= -1;
     }
-
+  
     if (
-      this.y + this.radius > paddle.y &&
-      this.x > paddle.x &&
-      this.x < paddle.x + paddle.w
+      this.y + this.radius >= paddle.y &&
+      this.y - this.radius <= paddle.y + paddle.h &&
+      this.x >= paddle.x &&
+      this.x <= paddle.x + paddle.w
     ) {
       let hitLocation = (this.x - paddle.x) / paddle.w;
-      let angle = map(hitLocation, 0, 1, -45, 45);
-      this.direction = p5.Vector.fromAngle(radians(angle - 90));
+      let angle = map(hitLocation, 0, 1, 45, -45);
+      this.direction = p5.Vector.fromAngle(radians(angle));
     }
-
+    
+    
+  
     for (let i = 0; i < bricks.length; i++) {
       if (this.collide(bricks[i])) {
         break;
       }
     }
-
+  
     this.direction.y += this.gravity;
-  };
+  }
+  
 
   this.collide = function (brick) {
     if (
