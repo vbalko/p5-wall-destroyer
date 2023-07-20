@@ -35,7 +35,7 @@ function Brick(x, y, w, h, c) {
     this.c = c;
     this.alpha = 255; // Add an alpha value for transparency
     this.hit = false; // Add a flag to indicate whether the brick has been hit
-    this.hitTime = null;  // Add this line
+    this.hitTime = null; 
 
     this.display = function () {
         if (this.hit && this.alpha > 0) {
@@ -75,7 +75,7 @@ function draw() {
         bricks[i].fade(); // Call the fade function for each brick
         ball.collide(bricks[i]);
     
-        if (bricks[i].alpha <= 0) { // Remove the brick when its alpha value is 0
+        if (bricks[i].hit && millis() - bricks[i].hitTime > 1000) { // Modify this line
             bricks.splice(i, 1);
             i--;
         }
